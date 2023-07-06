@@ -454,7 +454,7 @@ class HistoryListHandler(BaseHistoryHandler):
     history_items = []
 
     for file_name in os.listdir(self.history_path):
-      if not file_name.endswith('.pb'):
+      if not file_name.endswith('.json'):
         continue
 
       if not os.path.isfile(os.path.join(self.history_path, file_name)):
@@ -462,7 +462,7 @@ class HistoryListHandler(BaseHistoryHandler):
 
       dut_id = None
       start_time_millis = None
-      match = re.match(r'mfg_event_(.+)_(\d+)\.pb$', file_name)
+      match = re.match(r'mfg_record_(.+)_(\d+)\.json$', file_name)
 
       if match is not None:
         dut_id = match.group(1)
@@ -489,10 +489,15 @@ class HistoryItemHandler(BaseHistoryHandler):
   """GET endpoint for a test record from the history."""
 
   def get(self, file_name):
-    # TODO(kenadia): Implement the history item handler. The implementation
-    # depends on the format used to store test records on disk.
-    self.write('Not implemented.')
-    self.set_status(500)
+    try:
+      file_path = os.path.join(self.history_path, file_name)
+      with open(file_path, "r") as file:
+        test_record_dict = json.loads(file.read())
+        test_state_dict = _test_state_from_record(test_record_dict, None)
+        self.write(test_state_dict)
+    except Exception as e:
+      self.write(str(e))
+      self.set_status(500)
 
 
 class HistoryAttachmentsHandler(BaseHistoryHandler):
